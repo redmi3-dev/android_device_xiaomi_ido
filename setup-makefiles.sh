@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VENDOR=xiaomi
-DEVICE=ferrari
+DEVICE=ido
 
 OUTDIR=vendor/$VENDOR/$DEVICE
 MAKEFILEDIR=../../../$OUTDIR
@@ -127,7 +127,7 @@ EOF
 
 LOCAL_PATH := \$(call my-dir)
 
-ifeq (\$(TARGET_DEVICE),ferrari)
+ifeq (\$(TARGET_DEVICE),ido)
 ifeq (\$(QCPATH),)
 
 include \$(CLEAR_VARS)

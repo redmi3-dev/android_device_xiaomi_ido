@@ -15,7 +15,7 @@
 #
 BOARD_VENDOR := xiaomi
 
-LOCAL_PATH := device/xiaomi/ferrari
+LOCAL_PATH := device/xiaomi/ido
 
 # Include path
 TARGET_SPECIFIC_HEADER_PATH := $(LOCAL_PATH)/include
@@ -70,26 +70,18 @@ BOARD_KERNEL_BASE                  := 0x80000000
 BOARD_KERNEL_PAGESIZE              := 2048
 BOARD_KERNEL_TAGS_OFFSET           := 0x01E00000
 BOARD_RAMDISK_OFFSET               := 0x02000000
-TARGET_KERNEL_SOURCE               := kernel/xiaomi/ferrari
-ifneq ($(FERRARI_32_BIT),true)
+TARGET_KERNEL_SOURCE               := kernel/xiaomi/msm8916
 TARGET_KERNEL_ARCH := arm64
-TARGET_KERNEL_CONFIG := ferrari_debug_defconfig
+TARGET_KERNEL_CONFIG := wt88509_64-perf_defconfig
 TARGET_KERNEL_CROSS_COMPILE_PREFIX := aarch64-linux-android-
 TARGET_KERNEL_HEADER_ARCH := arm64
 TARGET_USES_UNCOMPRESSED_KERNEL := true
-else
-TARGET_KERNEL_CONFIG := cyanogenmod_ferrari_defconfig
-endif
-ifneq ($(TARGET_BUILD_VARIANT),user)
-TARGET_KERNEL_ADDITIONAL_CONFIG := cyanogenmod_debug_config
-endif
 
 # Audio
 BOARD_USES_ALSA_AUDIO := true
 AUDIO_FEATURE_ENABLED_DS2_DOLBY_DAP := true
 AUDIO_FEATURE_ENABLED_INCALL_MUSIC := false
 AUDIO_FEATURE_ENABLED_ANC_HEADSET := true
-AUDIO_FEATURE_ENABLED_COMPRESS_CAPTURE := true
 USE_CUSTOM_AUDIO_POLICY := 1
 
 # Bluetooth
@@ -100,8 +92,6 @@ QCOM_BT_USE_SMD_TTY := true
 BLUETOOTH_HCI_USE_MCT := true
 
 # Camera
-# TO DO - Put correct sensors and support
-BOARD_CAMERA_SENSORS := imx135_cp8675 imx214_cp8675 ov5648_cp8675
 TARGET_USE_VENDOR_CAMERA_EXT := true
 USE_DEVICE_SPECIFIC_CAMERA := true
 
@@ -128,9 +118,6 @@ HAVE_ADRENO_SOURCE:= false
 VSYNC_EVENT_PHASE_OFFSET_NS := 7500000
 SF_VSYNC_EVENT_PHASE_OFFSET_NS := 5000000
 TARGET_USES_NEW_ION_API := true
-
-# CMHW
-BOARD_HARDWARE_CLASS := device/xiaomi/ferrari/cmhw
 
 # FM
 TARGET_QCOM_NO_FM_FIRMWARE := true
@@ -168,7 +155,7 @@ TARGET_POWERHAL_VARIANT := qcom
 
 # Recovery
 RECOVERY_FSTAB_VERSION := 2
-TARGET_RECOVERY_FSTAB := $(LOCAL_PATH)/rootdir/root/fstab.qcom
+TARGET_RECOVERY_FSTAB := $(LOCAL_PATH)/recovery/recovery.fstab
 BOARD_USE_CUSTOM_RECOVERY_FONT := \"roboto_23x41.h\"
 TARGET_RECOVERY_PIXEL_FORMAT := "RGB_565"
 TARGET_RECOVERY_LCD_BACKLIGHT_PATH := \"/sys/class/leds/lcd-backlight/brightness\"
@@ -195,10 +182,10 @@ include device/qcom/sepolicy/sepolicy.mk
 
 # SELinux
 BOARD_SEPOLICY_DIRS += \
-    device/xiaomi/ferrari/sepolicy
+    device/xiaomi/ido/sepolicy
 
 # Qualcomm support
-BOARD_USES_QC_TIME_SERVICES := true
+#BOARD_USES_QC_TIME_SERVICES := true
 ifneq ($(QCPATH),)
 BOARD_USES_QCNE := true
 endif
@@ -225,5 +212,5 @@ TARGET_USES_QCOM_WCNSS_QMI       := true
 
 
 # inherit from the proprietary version
--include vendor/xiaomi/ferrari/BoardConfigVendor.mk
+-include vendor/xiaomi/ido/BoardConfigVendor.mk
 

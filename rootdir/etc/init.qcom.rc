@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2012, 2014, The Linux Foundation. All rights reserved.
+# Copyright (c) 2009-2012, 2014-2015, The Linux Foundation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -27,24 +27,15 @@
 
 import init.qcom.usb.rc
 import init.target.rc
+import init.qcom.factory.rc
 
 on early-init
     mount debugfs debugfs /sys/kernel/debug
 
-on init
-    # Preload the BoringSSL wrapper
-    export LD_PRELOAD "libboringssl-compat.so"
 
+on init
     # Set permissions for persist partition
     mkdir /persist 0771 system system
-    # mkdir /mnt/media_rw/sdcard1 0700 media_rw media_rw
-    mkdir /mnt/media_rw/usbotg 0700 media_rw media_rw
-    mkdir /mnt/media_rw/uicc0 0700 media_rw media_rw
-    mkdir /mnt/media_rw/uicc1 0700 media_rw media_rw
-    # mkdir /storage/sdcard1 0700 root root
-    mkdir /storage/uicc0 0700 root root
-    mkdir /storage/uicc1 0700 root root
-    mkdir /storage/usbotg 0700 root root
 
     # Support legacy paths
     symlink /sdcard /mnt/sdcard
@@ -59,6 +50,7 @@ on early-boot
     write /sys/module/pil_msa/parameters/modem_auth_timeout_ms ${persist.sys.modem_auth_timeout}
     write /sys/module/peripheral_loader/parameters/proxy_timeout_ms ${persist.sys.pil_proxy_timeout}
     write /sys/kernel/boot_adsp/boot 1
+    chown root audio /sys/kernel/boot_adsp/boot
 
 on boot
     chown bluetooth bluetooth /sys/module/bluetooth_power/parameters/power
@@ -95,13 +87,13 @@ on boot
     chmod 2770 /dev/socket/qmux_bluetooth
     mkdir /dev/socket/qmux_gps 0770 gps gps
     chmod 2770 /dev/socket/qmux_gps
-    mkdir /dev/socket/netmgr 0750 radio radio
-    chmod 2750 /dev/socket/netmgr
 
-    chmod 0666 /sys/class/leds/flashlight/brightness
-    chown system system /sys/class/leds/flashlight/brightness
+    mkdir /persist/drm 0770 system system
 
     setprop wifi.interface wlan0
+    
+ #add ota prop for mbn update 
+    setprop persist.radio.start_ota_daemon 1
 
 #   Define TCP buffer sizes for various networks
 #   ReadMin, ReadInitial, ReadMax, WriteMin, WriteInitial, WriteMax,
@@ -169,52 +161,22 @@ on boot
 
     # Set the console loglevel to < KERN_INFO
     # Set the default message loglevel to KERN_INFO
-    # write /proc/sys/kernel/printk "6 6 1 7"
+    write /proc/sys/kernel/printk "6 6 1 7"
 
     # Allow access for CCID command/response timeout configuration
     chown system system /sys/module/ccid_bridge/parameters/bulk_msg_timeout
 
-    # Avoid releasing data call when Null bearer is reported to AP accidentally.
-    setprop persist.radio.snapshot_enabled 1
-    setprop persist.radio.snapshot_timer 10
-
-    # Enable manual network selection function and distinguish 2G/3G/4G
-    setprop persist.radio.rat_on combine
-   
-    ## TelephonyManager.java requires this
-    chmod 0644 /proc/cmdline
-
-# Vibrator
-    chmod 0660 /dev/tspdrv
-    chown root shell /dev/tspdrv
-    chown system system /sys/class/timed_output/vibrator/enable
+    # Mark the copy complete flag to not completed
+    write /data/misc/radio/copy_complete 0
+    chown radio radio /data/misc/radio/copy_complete
+    chmod 0660 /data/misc/radio/copy_complete
     
-    ### fix lights permissions - TODO: move to ueventd.qcom.rc
-    chown system system /sys/class/leds/red/blink
-    chown system system /sys/class/leds/red/risetime
-    chown system system /sys/class/leds/red/falltime
-    chown system system /sys/class/leds/green/blink
-    chown system system /sys/class/leds/green/risetime
-    chown system system /sys/class/leds/green/falltime
-    chown system system /sys/class/leds/blue/blink
-    chown system system /sys/class/leds/blue/risetime
-    chown system system /sys/class/leds/blue/falltime
-
-    ## cmhw permissions
-    # key disabler
-    chown system system /sys/devices/soc.0/78b9000.i2c/i2c-5/5-004a/disable_keys
-
-    # doubletap to wake
-    chown system system /sys/devices/soc.0/78b9000.i2c/i2c-5/5-004a/wakeup_mode
-    chmod 0660 /sys/devices/soc.0/78b9000.i2c/i2c-5/5-004a/wakeup_mode
-
-    # color calibration
-    chown system system /sys/devices/virtual/graphics/fb0/rgb
-    chmod 0660 /sys/devices/virtual/graphics/fb0/rgb
-
-    # Create directory used by display clients
-    mkdir /data/misc/display 0770 system graphics
-    mkdir /persist/display 0770 system graphics
+    # Goodix Fingerprint
+    chown system system /dev/goodix_fp
+    chmod 0644 /dev/goodix_fp        
+    
+    setprop persist.sys.fp.vendor idle
+    start fpcd
 
 # msm specific files that need to be created on /data
 on post-fs-data
@@ -223,6 +185,11 @@ on post-fs-data
 
     # we will remap this as /mnt/sdcard with the sdcard fuse tool
     mkdir /data/misc/camera 0770 camera camera
+    setprop persist.camera.awb.ledrgshift 1
+    setprop persist.camera.awb.ledbgshift 1.15
+
+    mkdir /data/media 0770 media_rw media_rw
+    chown media_rw media_rw /data/media
 
     mkdir /data/misc/ipa 0700 net_admin net_admin
 
@@ -243,9 +210,6 @@ on post-fs-data
     mkdir /data/dpm 0771 system system
     chown system system /data/dpm
 
-    mkdir /data/dpm/fdMgr 0771 system system
-    chown system system /data/dpm/fdMgr
-
     mkdir /data/dpm/nsrm 0771 system system
     chown system system /data/dpm/nsrm
 
@@ -256,7 +220,8 @@ on post-fs-data
     mkdir /data/misc/dash 0770 media audio
 
     # Create directory used by display clients
-    mkdir /data/misc/display 0770 root system
+    mkdir /data/misc/display 0770 system graphics
+    mkdir /persist/display 0770 system graphics
 
     # Mounting of persist is moved to 'on emmc-fs' and 'on fs' sections
     # We chown/chmod /persist again so because mount is run as root + defaults
@@ -306,6 +271,9 @@ on post-fs-data
     #Create a folder for SRS to be able to create a usercfg file
     mkdir /data/data/media 0770 media media
 
+    #Create folder for qlogd
+    mkdir /data/misc/qlogd 0664
+
     #Create folder for mm-qcamera-daemon
     mkdir /data/camera 0770 media camera
 
@@ -314,10 +282,24 @@ on post-fs-data
     chmod 2755 /data/misc/perfd
     mkdir /data/system/perfd 0770 root system
     chmod 2770 /data/system/perfd
+    mkdir /persist/drm 0770 system system
 
     # NFC local data and nfcee xml storage
     mkdir /data/nfc 0770 nfc nfc
     mkdir /data/nfc/param 0770 nfc nfc
+
+    # Sensor
+    mkdir /persist/sensors 0770 system system
+
+####WT_LOGKIT2_ON_START
+    # RIDL data
+    mkdir /data/misc/SelfHost/ 0710 system shell
+    mkdir /data/misc/SelfHost/QCLogs/ 2750 system shell
+    mkdir /data/misc/SelfHost/QCLogs/temp/ 0700 system shell
+    mkdir /data/misc/SelfHost/storage/ 0700 system shell
+    mkdir /data/misc/SelfHost/Running/ 2750 system shell
+    mkdir /data/misc/SelfHost/socket/ 2770 system system
+####WT_LOGKIT2_ON_END
 
 service qcomsysd /system/bin/qcom-system-daemon
     class main
@@ -328,9 +310,9 @@ service ssr_setup /system/bin/ssr_setup
     oneshot
     disabled
 
-service ss_ramdump /system/bin/subsystem_ramdump 2
+service ss_ramdump /system/bin/subsystem_ramdump
     class main
-#    user system
+    user system
     group system
     disabled
 
@@ -376,6 +358,12 @@ on property:persist.debug.trace=1
     write /sys/bus/coresight/devices/coresight-etm3/enable 1
     write /sys/module/coresight_event/parameters/event_abort_enable 1
 
+# Allow usb charging to be disabled peristently
+on property:persist.sys.chgdisabled=1
+    write /sys/class/power_supply/battery/charging_enabled 0
+on property:persist.sys.chgdisabled=0
+    write /sys/class/power_supply/battery/charging_enabled 1
+
 on property:init.svc.wpa_supplicant=stopped
     stop dhcpcd
 
@@ -403,14 +391,6 @@ on property:bluetooth.startbtsnoop=true
 
 on property:bluetooth.startbtsnoop=false
     stop btsnoop
-
-# FM enable/disable triggers
-on property:hw.fm.init=1
-    write /sys/module/radio_iris_transport/parameters/fmsmd_set 1
-
-on property:hw.fm.init=0
-    write /sys/module/radio_iris_transport/parameters/fmsmd_set 0
-    setprop hw.fm.init 1
 
 service qcom-c_core-sh /system/bin/sh /init.qcom.class_core.sh
     class core
@@ -452,6 +432,10 @@ service rfs_access /system/bin/rfs_access
    class core
    user root
    group system net_raw
+
+service tftp_server /system/bin/tftp_server
+   class core
+   user root
 
 on property:wc_transport.start_hci=true
     start start_hci_filter
@@ -506,7 +490,7 @@ service bt-sap /system/bin/sapd 15
 
 service btsnoop /system/bin/btsnoop
    user bluetooth
-   group bluetooth net_bt_admin sdcard_rw sdcard_r
+   group bluetooth net_bt_admin sdcard_rw sdcard_r media_rw
    class late_start
    disabled
    oneshot
@@ -562,6 +546,8 @@ service ipacm /system/bin/ipacm
 
 service qti /system/vendor/bin/qti
     class main
+    user radio
+    group radio net_raw qcom_diag usb net_admin
     disabled
 
 service sensors /system/bin/sensors.qcom
@@ -654,20 +640,13 @@ service iprenew_p2p /system/bin/dhcpcd -n
     disabled
     oneshot
 
-service ptt_socket_app /system/bin/ptt_socket_app -d -f
+service ptt_socket_app /system/bin/ptt_socket_app -d
     class main
     user root
     group root
-    disabled
     oneshot
 
 service ptt_ffbm /system/bin/ptt_socket_app -f -d
-    user root
-    group root
-    disabled
-    oneshot
-
-service ftm_ffbm /system/bin/ftmdaemon
     user root
     group root
     disabled
@@ -857,54 +836,54 @@ service hcidump /system/bin/sh /system/etc/hcidump.sh
     disabled
     oneshot
 
-service charger /sbin/chargeonlymode
+service charger /charger
     class charger
 
 service ssr_diag /system/bin/ssr_diag
     class late_start
     user system
-    group system net_raw
+    group system
+    disabled
 
-# Define fastmmi
-service fastmmi /system/bin/mmi
+
+
+service hvdcp /system/bin/hvdcp
+    class core
+    user root
+    disabled
+
+on property:persist.usb.hvdcp.detect=true
+    start hvdcp
+
+on property:persist.usb.hvdcp.detect=false
+    stop hvdcp
+
+service charger_monitor /system/bin/charger_monitor
     user root
     group root
     disabled
-
-service fastmmisrv /system/bin/sh /init.qcom.factory.sh
-    user root
-    disabled
-    oneshot
-
-on mmi
-    start fastmmisrv
-
-on ffbm
-    trigger early-fs
-    trigger fs
-    trigger post-fs
-    trigger post-fs-data
-
-    # Load properties from /system/ + /factory after fs mount. Place
-    # this in another action so that the load will be scheduled after the prior
-    # issued fs triggers have completed.
-    trigger load_all_props_action
-
-    trigger early-boot
-    trigger mmi
-
 
 service qbcharger /charger -m 1
     disabled
     oneshot
 
 on property:sys.qbcharger.enable=true
+    write /sys/power/wake_lock QuickBoot
     start qbcharger
 
 on property:sys.qbcharger.enable=false
+    write /sys/power/wake_unlock QuickBoot
     stop qbcharger
 
-service diag_mdlog_start /system/bin/diag_mdlog -n 20
+#+first boot,jiangtao.wt,add 20150810
+on property:sys.installed.running=1
+    write /sys/power/wake_lock InstalldWakeLock
+
+on property:sys.installed.running=0
+    write /sys/power/wake_unlock InstalldWakeLock
+#-first boot,jiangtao.wt,add 20150810
+
+service diag_mdlog_start /system/bin/diag_mdlog -s 200 -n 10
     class late_start
     user shell
     group system qcom_diag sdcard_rw sdcard_r media_rw
@@ -935,15 +914,82 @@ on property:persist.sys.rootagent=1
 on property:persist.sys.rootagent=0
     stop rootagent
 
+service bms-sh /system/bin/sh /init.qcom.bms.sh
+    class main
+    user root
+    oneshot
+
+service vm_bms /system/bin/vm_bms
+    user root
+    group root
+    disabled
+
 service msm_irqbalance /system/bin/msm_irqbalance -f /system/vendor/etc/msm_irqbalance.conf
     class core
     user root
     group root
     disabled
 
-# To enable fast dormancy for CU
-on property:persist.radio.modem=LTE-CU
-    setprop persist.env.fastdorm.enabled true
-    setprop persist.radio.data_no_toggle 1
-    setprop persist.fd.scroff.timer 3000
-    setprop persist.fd.scron.timer 10000
+service SensorCali /system/bin/SensorCali
+    user root
+    oneshot
+    disabled
+    on property:ril.sensor_read="right"
+    start SensorCali
+
+service wfdservice /system/bin/wfdservice
+    class main
+    user system
+    group graphics audio camera inet net_bt net_bt_admin net_bt_stack drmrpc bluetooth media_rw media
+    disabled
+    oneshot
+
+on property:sys.wfdservice=enable
+    start wfdservice
+
+on property:sys.wfdservice=disable
+    stop wfdservice
+    
+on property:persist.radio.otaconfig=0
+    setprop persist.radio.start_ota_daemon 0
+on property:persist.radio.otaconfig=1
+    setprop persist.radio.start_ota_daemon 1
+
+####WT_LOGKIT2_ON_START
+service RIDL /system/vendor/bin/RIDLClient.exe
+    class late_start
+    oneshot
+    user root
+    group root inet log sdcard_r sdcard_rw qcom_diag radio net_raw
+    # removed for security team - misc bluetooth gps wifi diag media_rw
+    # limited to 12 groups.  Unused: audio usb net_bt_admin net_bt_stac net_admin
+####WT_LOGKIT2_ON_END
+
+service fpcd /system/bin/fpcd
+    class core
+    user root
+    group system
+    socket fpcd stream 666 system system
+    disabled
+
+
+service fpdaemon /system/bin/gxFpDaemon
+    user system
+    group system
+    class late_start
+    disabled
+
+on property:persist.sys.fp.vendor=switchf
+    stop fpdaemon
+    setprop persist.sys.fp.vendor searchf	    
+    start fpcd
+    
+on property:persist.sys.fp.vendor=switchg
+    stop fpcd
+    setprop persist.sys.fp.vendor searchg	    
+    start fpdaemon
+
+on property:persist.sys.fp.vendor=na
+    stop fpcd  
+
+

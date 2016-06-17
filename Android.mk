@@ -15,7 +15,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
-ifeq ($(TARGET_DEVICE),ferrari)
+ifeq ($(TARGET_DEVICE),ido)
 include $(call all-makefiles-under,$(LOCAL_PATH))
 
 include $(CLEAR_VARS)
@@ -135,7 +135,7 @@ $(shell mkdir -p $(TARGET_OUT)/etc/firmware/wcd9306; \
 
 # TWRP
 $(shell mkdir -p $(TARGET_RECOVERY_ROOT_OUT)/etc; \
-    cp -a device/xiaomi/ferrari/twrp/twrp.fstab \
+    cp -a device/xiaomi/ido/twrp/twrp.fstab \
 	    $(TARGET_RECOVERY_ROOT_OUT)/etc;)
 
 endif
