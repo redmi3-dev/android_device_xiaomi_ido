@@ -25,3 +25,8 @@ PRODUCT_MODEL := Redmi 3
 PRODUCT_MANUFACTURER := Xiaomi
 
 PRODUCT_GMS_CLIENTID_BASE := android-xiaomi
+
+## Use the latest approved GMS identifiers unless running a signed build
+PRODUCT_BUILD_PROP_OVERRIDES += \
+BUILD_FINGERPRINT=Xiaomi/ido/ido:5.1.1/LMY47V/6.5.26:user/release-keys \
+PRIVATE_BUILD_DESC="ido-user 5.1.1 LMY47V 6.5.26 release-keys"
